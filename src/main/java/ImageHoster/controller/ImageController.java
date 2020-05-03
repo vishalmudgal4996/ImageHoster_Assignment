@@ -46,10 +46,11 @@ public class ImageController {
     //Here a list of tags is added in the Model type object
     //this list is then sent to 'images/image.html' file and the tags are displayed
     @RequestMapping("/images/{id}/{title}")
-    public String showImage(@PathVariable("title") String title,@PathVariable("id") Integer id, Model model) {
-        Image image = imageService.getImageByTitle(title,id);
+    public String showImage(@PathVariable("id") Integer id, Model model) {
+        Image image = imageService.getImage(id);
         model.addAttribute("image", image);
         model.addAttribute("tags", image.getTags());
+        model.addAttribute("comments",image.getComments());
         return "images/image";
     }
 
@@ -96,7 +97,7 @@ public class ImageController {
         User user = (User) session.getAttribute("loggeduser");
         Image image = imageService.getImage(imageId);
         String tags = convertTagsToString(image.getTags());
-        if(image.getUser().getId().equals(user.getId())){
+        if(user.getId()==image.getUser().getId()){
             model.addAttribute("image", image);
             model.addAttribute("tags", tags);
             return "images/edit";
@@ -105,6 +106,7 @@ public class ImageController {
             model.addAttribute("editError", error);
             model.addAttribute("image", image);
             model.addAttribute("tags", image.getTags());
+            model.addAttribute("comments",image.getComments());
             return "images/image";
         }
     }
@@ -121,8 +123,9 @@ public class ImageController {
     //The method also receives tags parameter which is a string of all the tags separated by a comma using the annotation @RequestParam
     //The method converts the string to a list of all the tags using findOrCreateTags() method and sets the tags attribute of an image as a list of all the tags
     @RequestMapping(value = "/editImage", method = RequestMethod.PUT)
-    public String editImageSubmit(@RequestParam("file") MultipartFile file, @RequestParam("imageId") Integer imageId, @RequestParam("tags") String tags, Image updatedImage, HttpSession session) throws IOException {
+    public String editImageSubmit(@RequestParam("file") MultipartFile file, @RequestParam("imageId") Integer imageId, @RequestParam("tags") String tags, Image updatedImage,Model model,HttpSession session) throws IOException {
 
+        User user = (User) session.getAttribute("loggeduser");
         Image image = imageService.getImage(imageId);
         String updatedImageData = convertUploadedFileToBase64(file);
         List<Tag> imageTags = findOrCreateTags(tags);
@@ -134,13 +137,13 @@ public class ImageController {
         }
 
         updatedImage.setId(imageId);
-        User user = (User) session.getAttribute("loggeduser");
         updatedImage.setUser(user);
         updatedImage.setTags(imageTags);
         updatedImage.setDate(new Date());
 
         imageService.updateImage(updatedImage);
         return "redirect:/images/" + updatedImage.getId() + "/" + updatedImage.getTitle();
+
     }
 
 
@@ -152,14 +155,15 @@ public class ImageController {
         User user = (User) session.getAttribute("loggeduser");
         Image image = imageService.getImage(imageId);
 
-        if(image.getUser().getId().equals(user.getId())){
+        if(user.getId().equals(image.getUser().getId())){
             imageService.deleteImage(imageId);
             return "redirect:/images";
         }else{
-            String deleteError = "Only the owner of the image can edit the image";
+            String deleteError = "Only the owner of the image can delete the image";
             model.addAttribute("deleteError", deleteError);
             model.addAttribute("image", image);
             model.addAttribute("tags", image.getTags());
+            model.addAttribute("comments",image.getComments());
             return "images/image";
         }
     }
@@ -197,12 +201,12 @@ public class ImageController {
     private String convertTagsToString(List<Tag> tags) {
         StringBuilder tagString = new StringBuilder();
 
-        for (int i = 0; i <= tags.size() - 2; i++) {
+        for (int i = 0; i <tags.size(); i++) {
             tagString.append(tags.get(i).getName()).append(",");
         }
 
-        Tag lastTag = tags.get(tags.size() - 1);
-        tagString.append(lastTag.getName());
+//        Tag lastTag = tags.get(tags.size() - 1);
+//        tagString.append(lastTag.getName());
 
         return tagString.toString();
     }

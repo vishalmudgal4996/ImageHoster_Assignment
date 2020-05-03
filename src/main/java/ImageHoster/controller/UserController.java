@@ -46,10 +46,10 @@ public class UserController {
         boolean passCheck=passwordStrength.passStrengthCheck(user.getPassword());
         if(passCheck) {
             userService.registerUser(user);
-            return "redirect:/users/login";
+            return "users/login";
         }else{
 
-            String passwordTypeError="Password must contain at least 1 alphabet, 1 number & 1 special character";
+            String passwordTypeError="Password must contain atleast 1 alphabet, 1 number & 1 special character";
             UserProfile profile = new UserProfile();
             user.setProfile(profile);
             model.addAttribute("User", user);
